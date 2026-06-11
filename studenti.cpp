@@ -6,33 +6,32 @@ using namespace std;
 
 class Studente{
     public:
-        Studente(){
-            matricola="";
-            nome="";
-            cognome="";
-            media=0.0;
-        }
-        Studente(string m,string n,string c, double mn):matricola(m),nome(n),cognome(c),media(mn){}
+        Studente():matricola(0),nome(""),cognome(""),media(0.0){}
+        Studente(int m,string n,string c,double mn):matricola(m),nome(n),cognome(c),media(mn){}
 
-        string getMatricola(){
+        ~Studente(){}
+
+        int getMatricola(){
             return matricola;
         }
+
         string getNome(){
             return nome;
         }
+
         string getCognome(){
             return cognome;
         }
+
         double getMedia(){
             return media;
         }
 
-        
-        void stampa(){
-            cout<< nome<<" "<<cognome <<" - Matricola: "<<matricola <<endl;
+        virtual void stampa(){
+            cout<< matricola<<": "<<nome<<" "<<cognome<<" - media "<<media<<endl;
         }
     protected:
-        string matricola;
+        int matricola;
         string nome;
         string cognome;
         double media;
@@ -40,23 +39,20 @@ class Studente{
 
 class BorsaDiStudio{
     public:
+        BorsaDiStudio():importo(0),durata(0){}
+        BorsaDiStudio(int i,int d):importo(i),durata(d){}
 
-        BorsaDiStudio(int imp, int dur) 
-        : importo(imp), durata(dur) {}
-
-        void setImporto(int i){
-            importo=i;
-        }
-        void setDurata(int d){
-            durata=d;
-        }
+        ~BorsaDiStudio(){}
 
         int getImporto(){
             return importo;
         }
+
         int getDurata(){
             return durata;
         }
+
+        
     private:
         int importo;
         int durata;
@@ -64,150 +60,151 @@ class BorsaDiStudio{
 
 class StudenteBorsista:public Studente{
     public:
-
-        StudenteBorsista(string m,string n,string c, double mn,int b,int d):Studente(m,n,c,mn){
-            borsa= new BorsaDiStudio(b,d);
+        StudenteBorsista():Studente(0,"","",0.0){
+            borsa=nullptr;
+        }
+        StudenteBorsista(int m,string n,string c,double mn,int imp,int dur):Studente(m,n,c,mn){
+            if (dur > 0 && imp > 0) {
+                borsa = new BorsaDiStudio(imp, dur);
+            } else {
+                borsa = nullptr;
+        }
         }
 
-        ~StudenteBorsista() {if (borsa) delete borsa;}
-        
-        double get_importo_borsa(){
-            return borsa->getImporto();
+        ~StudenteBorsista(){
+            delete borsa;
         }
 
-        double get_durata_borsa(){
-            return borsa->getDurata();
+        int get_importo_borsa(){
+            return borsa != nullptr ? borsa->getImporto() : 0;
         }
 
-        void set_durata_borsa(int n){
-            borsa->setDurata(n);
+        int get_durata_borsa(){
+            return borsa != nullptr ? borsa->getDurata() : 0;
         }
 
-        void stampaB(){
-            if(borsa->getDurata()!=0){
-                cout<< matricola<<" : "<<nome<<" "<<cognome <<" - "<<media<<" ["<<borsa->getImporto()<<"]"<<endl;
+        void stampa(){
+            if(borsa != nullptr && borsa->getDurata() > 0){
+                cout<< matricola<<": "<<nome<<" "<<cognome<<" - media "<<media<<" ["<<borsa->getImporto()<<"]"<<endl;
             }else{
-                stampa();
+                Studente::stampa();
             }
         }
+
     private:
         BorsaDiStudio* borsa;
 };
 
-
-struct nodo{
-    StudenteBorsista* s;
-    nodo*next;
+template<typename T>
+struct Nodo{
+    T* s;
+    Nodo* next;
 };
 
-class pila{
+template<typename T>
+class Pila{
     public:
+        Pila():testa(nullptr){}
 
-        pila(){
-            testa=nullptr;
+        ~Pila(){   
+            while (!isEmpty()) {
+            T* rimosso = pop();
+            delete rimosso; 
+            }
         }
 
-        void push(StudenteBorsista* Is){
-            nodo* nuovo= new nodo;
-            nuovo->s=Is;
+        bool isEmpty(){
+            return testa==nullptr;
+        }
+
+
+        void push(T* val){
+            Nodo<T>* nuovo= new Nodo<T>;
+            nuovo->s=val;
             nuovo->next=testa;
             testa=nuovo;
         }
-        
-        void pop(StudenteBorsista* Es){
-            if(testa==nullptr){ 
-                cout<<"Pila vuota"<<endl;
-                return;
-            }else{
-                
-                nodo* current=testa;
-                nodo* prev=nullptr;
-                while((current!=nullptr)&&current->s->getMatricola()!=Es->getMatricola()){
-                    prev=current;
-                    current=current->next;
-                }
 
-                if(current==nullptr){
-                    return;
-                }
+        T* pop(){
 
-                if(prev==nullptr){
-                    testa=testa->next;
-                }else{
-                    prev->next=current->next;
-                }
-                delete current->s;
-                delete current;
-            }
+            if (isEmpty()) return nullptr;
+
+            Nodo<T>* temp = testa;
+            T* record = testa->s;
+            testa = testa->next;
+            
+            delete temp; // Elimina il "contenitore" Nodo
+            return record;
+            
         }
-
 
         void verifica(){
-            nodo*current=testa;
-            while(current!=nullptr){
-                if(current->s->getMedia()<25.0){
-                    current->s->set_durata_borsa(0);
-                    nodo*Es= current;
-                    current=current->next;
+            Pila<T> pilaTemp;
+
+            while(!isEmpty()){
+                T*sT=pop();
+                if(sT->getMedia() < 25.0){//controlla tutta la pila svuotandola per verificare la media
                     cout<<"Studente insufficiente rimosso:";
-                    current->s->stampaB();
-                    pop(Es->s);//rimuove
+                    sT->stampa();
+                    delete sT;
                 }else{
-                    current=current->next;
+                    pilaTemp.push(sT);
                 }
             }
-
+                //ritorniamo gli studenti validi nella pila
+                while(!pilaTemp.isEmpty()){
+                    push(pilaTemp.pop());
+                }
+           
         }
 
-        void stampaTotale(){
-            int somma=0;
-            nodo*current=testa;
-            cout<<"La pila contiene i seguenti studenti:"<<endl;
+        void stampaPila(){
+            double somma=0.0;
+            Nodo<T>* current=testa;
             while(current!=nullptr){
-                current->s->stampaB();
-                if(current->s->get_durata_borsa()>0){
+                if(current->s->get_durata_borsa() <= 0){
+                    current->s->stampa();
+                }else{
+                    current->s->stampa();
                     somma += current->s->get_importo_borsa();
                 }
-                
+
                 current=current->next;
             }
-            cout<<"Totale importi borse di studio: "<<somma<<" euro"<<endl;
+
+            cout<<"Totali importi borse di studio: "<<somma<<" euro."<<endl;
         }
 
     private:
-        nodo*testa;
+        Nodo<T>*testa;
 };
-
 
 int main(){
 
-    pila studenti;
+    Pila<StudenteBorsista> pila;
 
     ifstream file("input.txt");
-    
     if(!file.is_open()){
-        cout<<"Errore, apertura file"<<endl;
+        cout<<"Errore apertura file"<<endl;
     }
 
-    string m;
+    int m;
     string n;
     string c;
     double mn;
-    int b;
+    int imp;
     int d;
 
-    while(file >> m>>n>>c>>mn>>b>>d){
+
+    while(file>>m>>n>>c>>mn>>imp>>d){
         
-        StudenteBorsista* studente= new StudenteBorsista(m,n,c,mn,b,d);
+        pila.push(new StudenteBorsista(m,n,c,mn,imp,d));
         
-        studenti.push(studente);
     }
-
     file.close();
-    
-    studenti.verifica();
 
-    studenti.stampaTotale();
+    pila.verifica();
 
+    pila.stampaPila();
     return 0;
 }
