@@ -1,217 +1,203 @@
-#include <iostream>
+#include<iostream>
 #include <string>
 
-const int MAX=20;
-
 using namespace std;
-
-class Data{
-    public:
-        Data(int giorno,int mese,int anno):giorno_(giorno),mese_(mese),anno_(anno){}
-
-        int getAnno(){
-            return anno_;
-        }
-
-        int getMese(){
-            return mese_;
-        }
-
-        int getGiorno(){
-            return giorno_;
-        }
-    private:
-        int anno_;
-        int mese_;
-        int giorno_;
-};
+const int MAX=20;
 
 class Prodotto{
     public:
-        Prodotto():id_(0),prezzo_(0.0){}
-        Prodotto(int id,double prezzo):id_(id),prezzo_(prezzo){}
+        Prodotto():id(0),prezzo(0.0){}
+        Prodotto(int i,double p):id(i),prezzo(p){}
+
+        ~Prodotto(){}
 
         int getId(){
-            return id_;
+            return id;
         }
 
         double getPrezzo(){
-            return prezzo_;
+            return prezzo;
         }
 
-        void setId(int id){
-            id_=id;
+        void setId(int i){
+            id=i;
         }
 
-        void setPrezzo(double prezzo){
-            prezzo_=prezzo;
+        void setPrezzo(double p){
+            prezzo=p;
         }
 
-        virtual bool verifica(Data* oggi){return true;}
-
-        friend ostream& operator<<(ostream& out,Prodotto& p){
-            out<<"Prodotto\t ID: "<<p.id_<<" Prezzo: "<<p.prezzo_<<endl;
+        friend ostream& operator<<(ostream& out,Prodotto*& p){
+            out<<"ID: "<<p->id<<" Prezzo: "<< p->prezzo<<endl;
             return out;
         }
 
+        virtual bool verifica(){return true;}
 
-        void leggi(){
-            int id;
-            double prezzo;
-
-            cout<<"Creazione prodotto\n Inserisci ID: ";
-            cin >> id;
-            cin.get();
-            cout<<"Inserisci Prezzo: ";
-            cin>> prezzo;
-            cin.get();
-
-            Prodotto(id,prezzo);
-        }
-
-    private:
-        int id_;
-        double prezzo_;
+    protected:
+        int id;
+        double prezzo;
 };
 
+class Data{
+    public:
+        Data(int g,int m,int a):giorno(g),mese(m),anno(a){}
 
+        ~Data(){}
+
+        int getGiorno(){
+            return giorno;
+        }
+
+        int getMese(){
+            return mese;
+        }
+
+        int getAnno(){
+            return anno;
+        }
+
+        bool operator<= (Data& other){
+            if(anno <= other.anno){
+                if(mese <= other.mese){
+                    if(giorno <= other.giorno){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else{
+                    return false;
+                }
+            }else{
+                return false;
+            }
+        }
+
+
+    private:
+
+        int giorno;
+        int mese;
+        int anno;
+};
 
 class ProdottoAlimentare:public Prodotto{
     public:
-        ProdottoAlimentare(int id,double prezzo, int giorno,int mese,int anno):Prodotto(id,prezzo){
-            scadenza= new Data(giorno,mese,anno);
+        ProdottoAlimentare(int i,double p,int g,int m,int a):Prodotto(i,p){
+            scadenza= new Data(g,m,a);
         }
 
-        bool verifica(Data* oggi){
-            if (oggi->getAnno() > scadenza->getAnno()) return false;
-        
-            if (oggi->getMese() > scadenza->getMese()) return false;
+        ~ProdottoAlimentare(){
+            delete scadenza;
+        }
 
-            if(oggi->getGiorno()<scadenza->getGiorno() ){
-                cout<<"Prodotto valido,non scaduto"<<endl;
-                return true;
-            }else{
-                cout<<"Prodotto Scaduto"<<endl;
-                return false;
-            }
+        bool verifica(Data*oggi){
+            return oggi<=scadenza;
         }
     private:
         Data* scadenza;
 };
 
-
 class ProdottoPerBambini:public Prodotto{
     public:
-        ProdottoPerBambini(int id,double prezzo, int fascia):Prodotto(id,prezzo){
-            fasciaEta=fascie[fascia];
+         ProdottoPerBambini(int i,double p,int f):Prodotto(i,p){
+            fascia= fascie[f];
         }
 
-    private:
-        string fascie[4]={"0-3","3-6","6-9","9-12"};
-        string fasciaEta;
-};
+        ~ProdottoPerBambini(){}
 
+
+    private:
+        string fascia;
+        string fascie[4]={"0-3","3-6","6-9","9-12"};
+};
 
 class Venditore{
     public:
-        Venditore():IdVend(0),nProdotti(0){
-            prodotti=new Prodotto*[MAX];
-        }
-        Venditore(int id):IdVend(id),nProdotti(0){
-            prodotti=new Prodotto*[MAX];
-        }
+        Venditore():idV(0),nProdotti(0){}
+        Venditore(int i):idV(i),nProdotti(0){}
 
-        friend ostream& operator<<(ostream& out,Venditore &v ){
-            out<<"Venditore\tID:"<<v.IdVend<<endl;
-            out<<"Prodotti Venduti:"<<endl;
-            if(v.nProdotti==0){
-                out<<"Nessun prodotto";
-            }else{
-                for(int i=0;i<v.nProdotti;i++){
-                out<<*(v.prodotti[i]);
+        ~Venditore(){}
+
+        friend ostream& operator<<(ostream&out, Venditore*& v){
+            out<<" Venditore ID:"<<v->idV<<endl;
+            if(v->nProdotti>0){
+                for(int i=0;i < v->nProdotti;i++){
+                    out<< v->catalogo[i];
                 }
+            }else{
+                out<<"Nessun prodotto venduto";
             }
-            
             return out;
         }
 
         double calcolaPrezzoTotale(){
             double somma=0.0;
             for(int i=0;i<nProdotti;i++){
-                somma+=prodotti[i]->getPrezzo();
+                somma += catalogo[i]->getPrezzo();
             }
             return somma;
         }
 
-        double calcolaValoreMagazzino(Data*oggi){
+        double calcolaValoreMagazino(){
             double somma=0.0;
             for(int i=0;i<nProdotti;i++){
-                if(prodotti[i]->verifica(oggi)){
-                    somma+=prodotti[i]->getPrezzo();
+                if(catalogo[i]->verifica()){
+                    somma += catalogo[i]->getPrezzo();
                 }
             }
             return somma;
         }
 
         void aggiungiProdotto(Prodotto* p){
-            if(nProdotti<MAX){
-                prodotti[nProdotti]= p;
-                nProdotti++;
-            }else{
-                cout<<"Catalogo pieno"<<endl;
-                delete p;
-                return;
-            }
-            
-        }
-
-        void leggi(){
-            int id;
-
-            cout<<"Creazione venditore\n Inserisci ID: ";
-            cin >> id;
-            cin.get();
-            
-
-           // Venditore(id);
+            catalogo[nProdotti]=p;
+            nProdotti++;
         }
 
     private:
-        int IdVend;
-        Prodotto** prodotti;
+        int idV;
+        Prodotto** catalogo= new Prodotto*[MAX];
         int nProdotti;
 };
 
-void swap(Venditore*& a,Venditore*& b){
-    Venditore* temp=a;
-    a=b;
-    b=temp;
-}
 
-void stampaTotali(Venditore* V[],int size, int scelta){
-    for(int pass=0;pass<size-1;pass++){
-        for(int i=0;i<size-1-pass;i++){
-            if(scelta==1){
-                if(V[i]->calcolaPrezzoTotale() > V[i+1]->calcolaPrezzoTotale()){
-                    swap(V[i],V[i+1]);
-                }
-            }else{
-                if(V[i]->calcolaPrezzoTotale() < V[i+1]->calcolaPrezzoTotale()){
-                    swap(V[i],V[i+1]);
+void bubbleSort(Venditore*V[],int size){
+    int scelta;
+
+    cout<<"Selezione l'ordine di visualizzazione:\n1.Crescente\n2.Decrescente\nscelta:";
+    cin>>scelta;
+
+    switch(scelta){
+        case 1:
+            for(int pass=0;pass<size-1;pass++){
+                for(int i=0;i<size-1;i++){
+                    if(V[i]->calcolaPrezzoTotale() > V[i+1]->calcolaPrezzoTotale()){
+                        Venditore* temp=V[i];
+                        V[i]=V[i+1];
+                        V[i+1]=temp;
+                    }
                 }
             }
-        }
+            break;
+        case 2:
+            for(int pass=0;pass<size-1;pass++){
+                for(int i=0;i<size-1;i++){
+                    if(V[i]->calcolaPrezzoTotale() < V[i+1]->calcolaPrezzoTotale()){
+                        Venditore* temp=V[i];
+                        V[i]=V[i+1];
+                        V[i+1]=temp;
+                    }
+                }
+            }
+            break;
+        default:
+            cout<<"Opzione non disponibile"<<endl;
+            break;
     }
 
-    for (int i = 0; i < size; i++) {
-        cout << *V[i];
-        cout << "Prezzo Totale Catalogo: " << V[i]->calcolaPrezzoTotale() << " Euro\n\n";
-    }
 }
 
 int main(){
-
-    // Creiamo una data odierna fittizia per il controllo scadenze (es. 9 Giugno 2026)
     Data oggi(9, 6, 2026);
 
     int numVenditori = 3;
@@ -239,17 +225,14 @@ int main(){
     venditori[2]->aggiungiProdotto(new ProdottoPerBambini(14, 22.00, 2));
     venditori[2]->aggiungiProdotto(new Prodotto(15, 5.00));
 
-    // Interfaccia Menu richiesta dalla traccia
-    int scelta = 0;
-    cout << "=== MENU SELEZIONE ===\n";
-    cout << "Come vuoi ordinare i venditori in base al prezzo totale?\n";
-    cout << "1) Ordine Crescente\n";
-    cout << "2) Ordine Decrescente\n";
-    cout << "Scelta: ";
-    cin >> scelta;
-    cout << "\n";
+    bubbleSort(venditori,numVenditori);
 
-    stampaTotali(venditori, numVenditori, scelta);
+    cout<<"stampa..."<<endl;
+
+    for(int i=0;i<numVenditori;i++){
+        cout<<venditori[i];
+        cout<<" Costo Merce Totale: "<< venditori[i]->calcolaPrezzoTotale()<<endl;;
+    }
 
     return 0;
 }
